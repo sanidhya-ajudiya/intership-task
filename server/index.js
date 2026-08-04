@@ -22,7 +22,7 @@ const app = express();
 
 // Middlewares
 app.use(cors({
-  origin: '*',
+  origin: (origin, callback) => callback(null, true),
   credentials: true,
 }));
 app.use(express.json({ limit: '10mb' }));
@@ -54,8 +54,3 @@ const PORT = process.env.PORT || 5000;
 app.listen(PORT, () => {
   console.log(`Server running in ${process.env.NODE_ENV || 'development'} mode on port ${PORT}`);
 });
-
-app.use(cors({
-  origin: "https://e-commerce-plateform-one.vercel.app/",
-  credentials: true,
-}));
