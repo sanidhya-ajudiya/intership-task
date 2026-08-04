@@ -17,7 +17,7 @@ A complete, production-ready, full-stack Role-Based E-Commerce Platform built ac
 
 ### Backend
 - **Node.js & Express.js**: Modular RESTful APIs with controller/service layer pattern
-- **MongoDB & Mongoose**: Object Data Modeling (ODM) with indexed schema constraints
+- **Mysql & Mongoose**: Object Data Modeling (ODM) with indexed schema constraints
 - **JWT & bcryptjs**: Password hashing and secure token-based authentication headers
 - **Multer & Cloudinary**: Buffer memory storage and image cloud upload integration
 - **Razorpay**: Payment gateway integration with test mode signature validation
