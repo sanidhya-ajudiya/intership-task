@@ -102,6 +102,8 @@ const sampleFallbackProducts = [
   }
 ];
 
+const { getIsDbConnected } = require('../config/db');
+
 // @desc    Get all products with filtering, search, pagination
 // @route   GET /api/products
 // @access  Public
@@ -109,96 +111,100 @@ const getProducts = asyncHandler(async (req, res) => {
   const pageSize = Number(req.query.limit) || 8;
   const page = Number(req.query.page) || 1;
 
-  try {
-    const whereClause = {};
+  if (getIsDbConnected()) {
+    try {
+      const whereClause = {};
 
-    // Search keyword filter
-    if (req.query.search) {
-      whereClause[Op.or] = [
-        { title: { [Op.like]: `%${req.query.search}%` } },
-        { description: { [Op.like]: `%${req.query.search}%` } },
-      ];
+      // Search keyword filter
+      if (req.query.search) {
+        whereClause[Op.or] = [
+          { title: { [Op.like]: `%${req.query.search}%` } },
+          { description: { [Op.like]: `%${req.query.search}%` } },
+        ];
+      }
+
+      // Category filter
+      if (req.query.category && req.query.category !== 'All') {
+        whereClause.category = req.query.category;
+      }
+
+      // Price range filter
+      if (req.query.minPrice || req.query.maxPrice) {
+        whereClause.price = {};
+        if (req.query.minPrice) whereClause.price[Op.gte] = Number(req.query.minPrice);
+        if (req.query.maxPrice) whereClause.price[Op.lte] = Number(req.query.maxPrice);
+      }
+
+      // Seller filter
+      if (req.query.seller) {
+        whereClause.sellerId = req.query.seller;
+      }
+
+      const { count, rows: products } = await Product.findAndCountAll({
+        where: whereClause,
+        include: [{ model: User, as: 'seller', attributes: ['id', 'name', 'email', 'role', 'avatar'] }],
+        order: [['createdAt', 'DESC']],
+        limit: pageSize,
+        offset: pageSize * (page - 1),
+      });
+
+      return res.json({
+        success: true,
+        products,
+        page,
+        pages: Math.ceil(count / pageSize) || 1,
+        totalProducts: count,
+      });
+    } catch (error) {
+      console.warn('Database query failed, returning fallback sample products:', error.message);
     }
-
-    // Category filter
-    if (req.query.category && req.query.category !== 'All') {
-      whereClause.category = req.query.category;
-    }
-
-    // Price range filter
-    if (req.query.minPrice || req.query.maxPrice) {
-      whereClause.price = {};
-      if (req.query.minPrice) whereClause.price[Op.gte] = Number(req.query.minPrice);
-      if (req.query.maxPrice) whereClause.price[Op.lte] = Number(req.query.maxPrice);
-    }
-
-    // Seller filter
-    if (req.query.seller) {
-      whereClause.sellerId = req.query.seller;
-    }
-
-    const { count, rows: products } = await Product.findAndCountAll({
-      where: whereClause,
-      include: [{ model: User, as: 'seller', attributes: ['id', 'name', 'email', 'role', 'avatar'] }],
-      order: [['createdAt', 'DESC']],
-      limit: pageSize,
-      offset: pageSize * (page - 1),
-    });
-
-    return res.json({
-      success: true,
-      products,
-      page,
-      pages: Math.ceil(count / pageSize) || 1,
-      totalProducts: count,
-    });
-  } catch (error) {
-    console.error('Database query failed, returning fallback sample products:', error.message);
-    
-    // Filter fallback products based on query params if DB is unreachable
-    let list = [...sampleFallbackProducts];
-
-    if (req.query.category && req.query.category !== 'All') {
-      list = list.filter(p => p.category === req.query.category);
-    }
-
-    if (req.query.search) {
-      const q = req.query.search.toLowerCase();
-      list = list.filter(p => p.title.toLowerCase().includes(q) || p.description.toLowerCase().includes(q));
-    }
-
-    const count = list.length;
-    const startIndex = pageSize * (page - 1);
-    const paginatedProducts = list.slice(startIndex, startIndex + pageSize);
-
-    return res.json({
-      success: true,
-      products: paginatedProducts,
-      page,
-      pages: Math.ceil(count / pageSize) || 1,
-      totalProducts: count,
-      isFallback: true,
-    });
   }
+
+  // Filter fallback products based on query params if DB is unreachable
+  let list = [...sampleFallbackProducts];
+
+  if (req.query.category && req.query.category !== 'All') {
+    list = list.filter(p => p.category === req.query.category);
+  }
+
+  if (req.query.search) {
+    const q = req.query.search.toLowerCase();
+    list = list.filter(p => p.title.toLowerCase().includes(q) || p.description.toLowerCase().includes(q));
+  }
+
+  const count = list.length;
+  const startIndex = pageSize * (page - 1);
+  const paginatedProducts = list.slice(startIndex, startIndex + pageSize);
+
+  return res.json({
+    success: true,
+    products: paginatedProducts,
+    page,
+    pages: Math.ceil(count / pageSize) || 1,
+    totalProducts: count,
+    isFallback: true,
+  });
 });
 
 // @desc    Get single product by ID
 // @route   GET /api/products/:id
 // @access  Public
 const getProductById = asyncHandler(async (req, res) => {
-  try {
-    const product = await Product.findByPk(req.params.id, {
-      include: [{ model: User, as: 'seller', attributes: ['id', 'name', 'email', 'role', 'avatar'] }],
-    });
-
-    if (product) {
-      return res.json({
-        success: true,
-        product,
+  if (getIsDbConnected()) {
+    try {
+      const product = await Product.findByPk(req.params.id, {
+        include: [{ model: User, as: 'seller', attributes: ['id', 'name', 'email', 'role', 'avatar'] }],
       });
+
+      if (product) {
+        return res.json({
+          success: true,
+          product,
+        });
+      }
+    } catch (error) {
+      console.warn('Database query failed for product by ID, checking fallback products:', error.message);
     }
-  } catch (error) {
-    console.error('Database query failed for product by ID, checking fallback products:', error.message);
   }
 
   const fallback = sampleFallbackProducts.find(p => String(p.id) === String(req.params.id) || String(p._id) === String(req.params.id));
