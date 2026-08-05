@@ -5,8 +5,7 @@ const getBaseUrl = () => {
   if (envUrl && envUrl !== 'undefined') {
     return envUrl.endsWith('/api') ? envUrl : `${envUrl.replace(/\/$/, '')}/api`;
   }
-  // Fallback Render backend URL if environment variable is missing
-  return 'https://intership-task-s70q.onrender.com/api';
+  return 'http://localhost:5000/api';
 };
 
 const API_BASE_URL = getBaseUrl();
@@ -38,3 +37,4 @@ API.interceptors.response.use(
 );
 
 export default API;
+
