@@ -1,7 +1,7 @@
 const asyncHandler = require('express-async-handler');
 const crypto = require('crypto');
 const { Order, OrderItem, OrderTrackingHistory, Cart, CartItem, Product, User } = require('../models');
-const razorpay = require('../config/razorpay');
+const getRazorpayInstance = require('../config/razorpay');
 
 // Helper to format order for response
 const formatOrder = async (orderId) => {
@@ -61,6 +61,7 @@ const createRazorpayOrder = asyncHandler(async (req, res) => {
   };
 
   try {
+    const razorpay = getRazorpayInstance();
     let razorpayOrder;
     if (razorpay) {
       razorpayOrder = await razorpay.orders.create(options);
@@ -80,6 +81,7 @@ const createRazorpayOrder = asyncHandler(async (req, res) => {
       key: process.env.RAZORPAY_KEY_ID || 'rzp_test_mockkey12345',
     });
   } catch (error) {
+    console.error('Razorpay Order Creation Error:', error?.message || error);
     res.json({
       success: true,
       order: {
@@ -223,9 +225,9 @@ const getOrders = asyncHandler(async (req, res) => {
     });
   }
 
-  const formattedOrders = await Promise.all(
-    orderRecords.map((o) => formatOrder(o.id))
-  );
+  const formattedOrders = (
+    await Promise.all(orderRecords.map((o) => formatOrder(o.id)))
+  ).filter(Boolean);
 
   res.json({
     success: true,

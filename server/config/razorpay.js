@@ -1,14 +1,17 @@
 const Razorpay = require('razorpay');
 
-let razorpayInstance = null;
+const getRazorpayInstance = () => {
+  const key_id = process.env.RAZORPAY_KEY_ID;
+  const key_secret = process.env.RAZORPAY_KEY_SECRET;
 
-try {
-  razorpayInstance = new Razorpay({
-    key_id: process.env.RAZORPAY_KEY_ID || 'rzp_test_mockkey12345',
-    key_secret: process.env.RAZORPAY_KEY_SECRET || 'mockrazorpaysecret67890',
-  });
-} catch (err) {
-  console.warn('Razorpay initialization warning:', err.message);
-}
+  if (key_id && key_secret) {
+    try {
+      return new Razorpay({ key_id, key_secret });
+    } catch (err) {
+      console.warn('Razorpay initialization error:', err.message);
+    }
+  }
+  return null;
+};
 
-module.exports = razorpayInstance;
+module.exports = getRazorpayInstance;

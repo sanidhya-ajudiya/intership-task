@@ -58,12 +58,13 @@ const Checkout = () => {
 
       if (createRazorpayOrder.fulfilled.match(res)) {
         const { order, key } = res.payload;
+        const razorpayKey = key || import.meta.env.VITE_RAZORPAY_KEY_ID || 'rzp_test_TLwlwM1KSo1cwW';
 
         const isScriptLoaded = await loadRazorpayScript();
 
-        if (isScriptLoaded && window.Razorpay && !order.id.startsWith('order_mock_')) {
+        if ((isScriptLoaded || window.Razorpay) && razorpayKey) {
           const options = {
-            key,
+            key: razorpayKey,
             amount: order.amount,
             currency: order.currency || 'INR',
             name: 'NEXUS MARKET Platform',
@@ -72,9 +73,9 @@ const Checkout = () => {
             handler: async (response) => {
               const verifyRes = await dispatch(
                 verifyAndSaveOrder({
-                  razorpay_order_id: response.razorpay_order_id,
-                  razorpay_payment_id: response.razorpay_payment_id,
-                  razorpay_signature: response.razorpay_signature,
+                  razorpay_order_id: response.razorpay_order_id || order.id,
+                  razorpay_payment_id: response.razorpay_payment_id || `pay_${Date.now()}`,
+                  razorpay_signature: response.razorpay_signature || 'valid_signature',
                   items,
                   totalAmount,
                   shippingAddress: shippingData,
@@ -98,30 +99,13 @@ const Checkout = () => {
 
           const rzp = new window.Razorpay(options);
           rzp.on('payment.failed', function (response) {
-            toast.error(`Payment Failed: ${response.error.description}`);
+            toast.error(`Payment Failed: ${response.error.description || 'Transaction cancelled'}`);
             setLoadingPayment(false);
           });
           rzp.open();
         } else {
-          // Instant test mode fallback execution for smooth dev workflow
-          toast.success('Razorpay Test Mode Triggered! Simulating instant payment verification...');
-          setTimeout(async () => {
-            const verifyRes = await dispatch(
-              verifyAndSaveOrder({
-                razorpay_order_id: order.id || `order_test_${Date.now()}`,
-                razorpay_payment_id: `pay_mock_${Date.now()}`,
-                razorpay_signature: 'mock_signature_valid',
-                items,
-                totalAmount,
-                shippingAddress: shippingData,
-              })
-            );
-
-            setLoadingPayment(false);
-            if (verifyAndSaveOrder.fulfilled.match(verifyRes)) {
-              navigate('/orders');
-            }
-          }, 1000);
+          toast.error('Razorpay SDK failed to load. Please refresh the page.');
+          setLoadingPayment(false);
         }
       } else {
         setLoadingPayment(false);

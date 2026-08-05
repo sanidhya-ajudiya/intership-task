@@ -135,14 +135,16 @@ const Orders = () => {
         </div>
       ) : (
         <div className="space-y-8">
-          {orders.map((order) => {
+          {orders.filter(Boolean).map((order) => {
+            if (!order || !order.status) return null;
+            const orderId = order._id || order.id || 'order';
             const currentStepIdx = getStepIndex(order.status);
             const progressPercent = getStepProgress(order.status);
             const isCancelled = order.status === 'Cancelled';
-            const isExpanded = expandedTimeline[order._id];
+            const isExpanded = expandedTimeline[orderId];
 
             const trackingNumber =
-              order.trackingNumber || `NEX-${order._id.slice(-6).toUpperCase()}`;
+              order.trackingNumber || `NEX-${String(orderId).slice(-6).toUpperCase()}`;
 
             const estDate = order.estimatedDeliveryDate
               ? new Date(order.estimatedDeliveryDate).toLocaleDateString(undefined, {
@@ -150,14 +152,14 @@ const Orders = () => {
                   day: 'numeric',
                   year: 'numeric',
                 })
-              : new Date(new Date(order.createdAt).getTime() + 3 * 86400000).toLocaleDateString(
+              : new Date((order.createdAt ? new Date(order.createdAt).getTime() : Date.now()) + 3 * 86400000).toLocaleDateString(
                   undefined,
                   { month: 'short', day: 'numeric', year: 'numeric' }
                 );
 
             return (
               <div
-                key={order._id}
+                key={orderId}
                 className="glass-panel p-6 rounded-3xl border border-gray-800 space-y-6 hover:border-gray-700 transition-all shadow-xl"
               >
                 {/* Order Top Bar */}
@@ -312,9 +314,9 @@ const Orders = () => {
                           value={order.status}
                           onChange={(e) =>
                             handleStatusAndLocationChange(
-                              order._id,
+                              orderId,
                               e.target.value,
-                              updatingLocation[order._id] || order.currentLocation
+                              updatingLocation[orderId] || order.currentLocation
                             )
                           }
                           className="w-full bg-gray-950 border border-gray-700 text-xs font-semibold text-gray-200 rounded-xl px-3 py-2 focus:border-indigo-500 focus:outline-none"
@@ -337,7 +339,7 @@ const Orders = () => {
                             onChange={(e) =>
                               setUpdatingLocation({
                                 ...updatingLocation,
-                                [order._id]: e.target.value,
+                                [orderId]: e.target.value,
                               })
                             }
                             className="flex-1 bg-gray-950 border border-gray-700 text-xs text-gray-200 rounded-xl px-3 py-2 focus:border-indigo-500 focus:outline-none"
@@ -346,10 +348,10 @@ const Orders = () => {
                             type="button"
                             onClick={() =>
                               handleStatusAndLocationChange(
-                                order._id,
+                                orderId,
                                 order.status,
-                                updatingLocation[order._id] || order.currentLocation,
-                                `Location update: ${updatingLocation[order._id] || order.currentLocation}`
+                                updatingLocation[orderId] || order.currentLocation,
+                                `Location update: ${updatingLocation[orderId] || order.currentLocation}`
                               )
                             }
                             className="px-3 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-bold flex items-center gap-1 shadow-md shadow-indigo-600/30"
@@ -400,7 +402,7 @@ const Orders = () => {
                   <div className="border-t border-gray-800 pt-3">
                     <button
                       type="button"
-                      onClick={() => toggleTimeline(order._id)}
+                      onClick={() => toggleTimeline(orderId)}
                       className="w-full flex items-center justify-between text-xs font-bold text-indigo-400 hover:text-indigo-300 py-1"
                     >
                       <span className="flex items-center gap-1.5">
