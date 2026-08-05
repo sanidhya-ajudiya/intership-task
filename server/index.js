@@ -33,6 +33,10 @@ app.get('/api/health', (req, res) => {
   res.json({ status: 'OK', message: 'Role-Based E-Commerce API is running smoothly' });
 });
 
+app.get('/api/version', (req, res) => {
+  res.json({ version: '1.0.1-fixed-fallback' });
+});
+
 // API Routes (Mounted under /api and root endpoints as per spec requirements)
 app.use('/api', authRoutes); // /register, /login, /profile
 app.use('/api/users', userRoutes);
