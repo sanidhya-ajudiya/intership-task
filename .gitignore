@@ -24,8 +24,3 @@ yarn-error.log*
 Thumbs.db
 .vscode/
 .idea/
-
-# Database files
-*.sqlite
-server/data/
-
