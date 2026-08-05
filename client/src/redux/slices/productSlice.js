@@ -6,8 +6,20 @@ export const fetchProducts = createAsyncThunk(
   'products/fetchProducts',
   async (params = {}, { rejectWithValue }) => {
     try {
-      const queryStr = new URLSearchParams(params).toString();
-      const response = await API.get(`/products?${queryStr}`);
+      const cleanParams = {};
+      if (params && typeof params === 'object') {
+        Object.keys(params).forEach((key) => {
+          const val = params[key];
+          if (val !== undefined && val !== null && val !== '' && val !== 'undefined') {
+            if (key === 'category' && val === 'All') return;
+            cleanParams[key] = val;
+          }
+        });
+      }
+
+      const queryStr = new URLSearchParams(cleanParams).toString();
+      const url = queryStr ? `/products?${queryStr}` : '/products';
+      const response = await API.get(url);
       return response.data;
     } catch (error) {
       return rejectWithValue(error.response?.data?.message || 'Failed to fetch products');
@@ -19,8 +31,11 @@ export const fetchProductById = createAsyncThunk(
   'products/fetchProductById',
   async (id, { rejectWithValue }) => {
     try {
+      if (!id || id === 'undefined') {
+        return rejectWithValue('Invalid product ID');
+      }
       const response = await API.get(`/products/${id}`);
-      return response.data.product;
+      return response.data.product || response.data;
     } catch (error) {
       return rejectWithValue(error.response?.data?.message || 'Failed to fetch product details');
     }

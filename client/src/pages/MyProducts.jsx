@@ -12,7 +12,10 @@ const MyProducts = () => {
 
   useEffect(() => {
     if (user) {
-      dispatch(fetchProducts({ seller: user._id, limit: 50 }));
+      const sellerId = user.id || user._id;
+      if (sellerId) {
+        dispatch(fetchProducts({ seller: sellerId, limit: 50 }));
+      }
     }
   }, [dispatch, user]);
 

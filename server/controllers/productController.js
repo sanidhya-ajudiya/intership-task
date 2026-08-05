@@ -13,7 +13,7 @@ const getProducts = asyncHandler(async (req, res) => {
   const whereClause = {};
 
   // Search keyword filter
-  if (req.query.search) {
+  if (req.query.search && req.query.search !== 'undefined' && req.query.search.trim() !== '') {
     whereClause[Op.or] = [
       { title: { [Op.like]: `%${req.query.search}%` } },
       { description: { [Op.like]: `%${req.query.search}%` } },
@@ -21,20 +21,20 @@ const getProducts = asyncHandler(async (req, res) => {
   }
 
   // Category filter
-  if (req.query.category && req.query.category !== 'All') {
+  if (req.query.category && req.query.category !== 'All' && req.query.category !== 'undefined') {
     whereClause.category = req.query.category;
   }
 
   // Price range filter
   if (req.query.minPrice || req.query.maxPrice) {
     whereClause.price = {};
-    if (req.query.minPrice) whereClause.price[Op.gte] = Number(req.query.minPrice);
-    if (req.query.maxPrice) whereClause.price[Op.lte] = Number(req.query.maxPrice);
+    if (req.query.minPrice && !isNaN(req.query.minPrice)) whereClause.price[Op.gte] = Number(req.query.minPrice);
+    if (req.query.maxPrice && !isNaN(req.query.maxPrice)) whereClause.price[Op.lte] = Number(req.query.maxPrice);
   }
 
   // Seller filter
-  if (req.query.seller) {
-    whereClause.sellerId = req.query.seller;
+  if (req.query.seller && req.query.seller !== 'undefined' && !isNaN(req.query.seller)) {
+    whereClause.sellerId = Number(req.query.seller);
   }
 
   const { count, rows: products } = await Product.findAndCountAll({
@@ -49,7 +49,7 @@ const getProducts = asyncHandler(async (req, res) => {
     success: true,
     products,
     page,
-    pages: Math.ceil(count / pageSize),
+    pages: Math.ceil(count / pageSize) || 1,
     totalProducts: count,
   });
 });
